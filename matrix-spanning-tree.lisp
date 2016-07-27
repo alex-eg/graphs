@@ -1,6 +1,21 @@
-;; Enter your code here. Read input from STDIN. Print output to STDOUT
+;;; Weighted directional graph MST library
+;;; Multiple edges are allowed, but loops are not
+
+
+;;; Supplimentary functions
+
+(defun println (obj &optional name)
+  "It's like print"
+  (if name
+      (progn (princ name)
+             (princ " ")))
+  (princ obj)
+  (terpri)
+  obj)
 
 (defun string-to-list (string)
+  "Read from string as reader would do, and returning it as list.
+Example: (string-to-list \"1 2 3 wut quux\") -> '(1 2 3 wut quux)"
     (with-input-from-string (s string)
         (loop
           :for c := (read s nil)
@@ -9,6 +24,56 @@
 (defun make-square-matrix (n)
   (make-array (list n n)
               :initial-element nil))
+
+(defun v-len (v)
+  (sqrt (* 1.0d0 ; without double precision results become unstable...
+           (loop :for i :below (array-total-size v)
+              :sum (expt (aref v i) 2)))))
+
+(defun count-population (vec)
+  "Counts total length of all vector elements.
+Used in counting edge "
+  (reduce (lambda (pop e)
+            (+ pop (length e)))
+          vec
+          :initial-value 0))
+
+;;; Matrix I/O
+;;; Matrix input is defined by following format:
+;;; v e
+;;; v1 v2 w1
+;;; ...
+;;; where v is number of vertices, e - number of edges,
+;;; followed by e lines, where v1 and v2 - vertices numbers,
+;;; w1 - weight edge
+
+(defun read-matrix-from-string (string)
+  (with-input-from-string (*standard-input* string)
+    (let* ((nodes (read))
+           (edges (read))
+           (m (make-square-matrix nodes)))
+      (loop :repeat edges
+         :do (apply #'set-edge
+                    (append (list m)
+                            (let ((s (string-to-list (read-line))))
+                              (setf (car s) (1- (car s)))
+                              (setf (cadr s) (1- (cadr s)))
+                              s))))
+      m)))
+
+(defun read-matrix ()
+  "Reads matrix from *standard-input*"
+  (let* ((nodes (read))
+         (edges (read))
+         (m (make-square-matrix nodes)))
+    (loop :repeat edges
+       :do (apply #'set-edge
+                  (append (list m)
+                          (let ((s (string-to-list (read-line))))
+                            (setf (car s) (1- (car s)))
+                            (setf (cadr s) (1- (cadr s)))
+                            s))))
+    m))
 
 (defun print-matrix (m)
   (let ((row-length (array-dimension m 1)))
@@ -19,10 +84,14 @@
        (princ (row-major-aref m i))))
     m)
 
+;;; Setters and getters
+
 (defun set-edge (m n1 n2 w)
+"Sets edge of weighted directed graph with multiedges"
   (push w (aref m n1 n2)))
 
 (defun set-edge-num (m n1 n2 w)
+"Sets edge of weighted directed graph without multiedges"
   (setf (aref m n1 n2) w))
 
 (defun get-row (m row-num)
@@ -43,21 +112,13 @@
                                   col-num))))
     col))
 
-(defun v-len (v)
-  (sqrt (* 1.0d0                        ; without double precision results become unstable...
-           (loop :for i :below (array-total-size v)
-              :sum (expt (aref v i) 2)))))
-
-(defun count-population (vec)
-  (reduce (lambda (pop e)
-            (+ pop (length e)))
-          vec
-          :initial-value 0))
+;;;  Matrix (and vector, being 1 x n matrixes) operations
 
 (defmacro defm (name operator)
+  "Binary matrix operations definition macro.
+Works for weighted directed graphs without multiple edges"
   `(defun ,name (m1 &rest rest)
      (if (null rest) m1
-
          (let ((m (make-array (array-dimensions m1))))
            (loop :for i :below (array-total-size m)
               :do (setf (row-major-aref m i)
@@ -72,28 +133,25 @@
 (defm m- #'-)
 
 (defun matrix-map (fun m)
+  "Maps fun to all m values"
   (let ((nm (make-array (array-dimensions m))))
     (loop :for i :below (array-total-size m)
        :do (setf (row-major-aref nm i)
                  (funcall fun (row-major-aref m i))))
     nm))
 
-(defmacro defm. (name op)
-  `(defun ,name (m &rest nums)
-     (if (null nums) m
-         (let ((nm (make-array (array-dimensions m))))
-           (loop :for i :below (array-total-size m)
-              :do (setf (row-major-aref nm i)
-                        (apply ,op
-                               (cons
-                                (row-major-aref m i)
-                                nums))))
-           nm))))
+(defun m.* (m &rest nums)
+  (matrix-map (lambda (e)
+                (apply #'* (cons e nums)))
+              m))
 
-(defm. m.* #'*)
-(defm. m./ #'/)
+(defun m./ (m &rest nums)
+  (matrix-map (lambda (e)
+                (apply #'/ (cons e nums)))
+              m))
 
 (defun m* (m1 m2)
+"Regular matrix multiplication"
   (assert (equal (array-dimensions m1)
                  (nreverse (array-dimensions m2))))
   (let* ((n (array-dimension m1 0))
@@ -232,14 +290,6 @@ for this function"
 (defun projection (a e)
   (m.* e (/ (dot a e) (dot e e))))
 
-(defun println (obj &optional name)
-  (if name
-      (progn (princ name)
-             (princ " ")))
-  (princ obj)
-  (terpri)
-  obj)
-
 (defun qr-determinant (m)
   (let ((u (make-array (list (array-dimension m 0)))))
     (reduce #'*
@@ -296,7 +346,7 @@ for this function"
   (multiple-value-bind (nm min) (trim-to-min m)
     (qr-determinant (cofactor (laplace-matrix nm) 0 0))))
 
-(defun random-matrix (n)
+(defun make-random-square-matrix (n)
   (let ((rm (make-square-matrix n)))
     (loop :for i :below (* n n) :do
        (setf (row-major-aref rm i)
@@ -304,37 +354,12 @@ for this function"
                (if (= r 0) nil (list r)))))
     rm))
 
-(defun random-nonsquare-matrix (n m)
+(defun make-random-matrix (n m)
   (let ((rm (make-array (list n m))))
     (loop :for i :below (* n m) :do
        (setf (row-major-aref rm i)
              (random 4)))
  rm))
-
-(defun read-matrix-from-string (string)
-  (with-input-from-string (*standard-input* string)
-    (let* ((nodes (read))
-           (edges (read))
-           (m (make-square-matrix nodes)))
-      (loop :repeat edges
-         :do (apply #'set-edge (append (list m)
-                                       (let ((s (string-to-list (read-line))))
-                                         (setf (car s) (1- (car s)))
-                                         (setf (cadr s) (1- (cadr s)))
-                                         s))))
-      m)))
-
-(defun read-matrix ()
-  (let* ((nodes (read))
-         (edges (read))
-         (m (make-square-matrix nodes)))
-    (loop :repeat edges
-       :do (apply #'set-edge (append (list m)
-                                     (let ((s (string-to-list (read-line))))
-                                       (setf (car s) (1- (car s)))
-                                       (setf (cadr s) (1- (cadr s)))
-                                       s))))
-    m))
 
 (defun test ()
   (princ (/ 1 (span-tree-number (read-matrix-from-string "4 4
