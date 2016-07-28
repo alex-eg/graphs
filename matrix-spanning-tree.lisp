@@ -318,25 +318,6 @@ for this function"
 (defun span-tree-count (m)
   (qr-determinant (cofactor (laplace-matrix m) 0 0)))
 
-;;; Below unused testing functions
-
-(defun vec-min-edge (vec)
-  "Finds edge with minimal edge weight"
-  (let ((initial-value (find-if-not #'null vec)))
-    (if initial-value
-        (reduce (lambda (acc e)
-                  (if (null e) acc
-                      (min acc (apply #'min e))))
-                vec
-                :initial-value (car initial-value))
-        nil)))
-
-(defun vec-min-edges-count (vec)
-  (reduce (lambda (acc e)
-            (+ acc (count (vec-min-edge vec) e)))
-          vec
-          :initial-value 0))
-
 ;;; Various functions for counting MST in a graph
 ;;; We introduce polynomial matrix, which contais polynomes of arbitrary weight
 
@@ -405,7 +386,7 @@ for this function"
           (println subsets)
           (push e mst))))
     mst))
-#|
+
 ;;; Pieper algorithm for counting MST in graph
 
 (defun a~-matrix (m n)
@@ -414,21 +395,75 @@ for this function"
     (cofactor m n (1+ col-num))))
 
 ;; Polynome is list of lists, where each member is a pair (power . coefficient)
+;; Sorted by power
+
+(defun make-polynome (power coefficient)
+  (cons power coefficient))
+
+(defun pwr (a)
+"Polynome power"
+  (car a))
+
+(defun cff (a)
+"Polynome coefficient"
+  (cdr a))
+
+(defun polynome+ (a b)
+  (cond ((null b) a)
+        ((null a) b)
+        ((> (pwr (car a))
+            (pwr (car b)))
+         (cons (car a) (polynome+ (cdr a) b)))
+        ((< (pwr (car a))
+            (pwr (car b)))
+         (cons (car b) (polynome+ a (cdr b))))
+        ((= (pwr (car a))
+            (pwr (car b)))
+         (cons (make-polynome (pwr (car a))
+                              (+ (cff (car a))
+                                 (cff (car b))))
+               (polynome+ (cdr a) (cdr b))))))
+
+(defun monome* (a num)
+  (make-polynome (pwr a)
+                 (* num (cff a))))
 
 (defun vertex-degree-polynome (m u)
-  "Sum of weigth polynomes of the vertex"
-  (let* ((edges-starting )
-         (unique (remove-duplicates (aref m u v))))
-    (reduce (lambda (acc elem)
-              (cons (count elem (aref m u v)))))))
+  "Sum of all weigth polynomes of the vertex"
+  (let* ((edges-starting (row m u))
+         (polynomes (mapcar (lambda (a) (make-polynome a 1))
+                            (reduce #'append
+                                 (remove-if #'null edges-starting)))))
+    (if polynomes
+        (sort (reduce (lambda (acc p)
+                        (polynome+ acc (list p)))
+                       (cdr polynomes)
+                       :initial-value (list (car polynomes)))
+              #'> :key #'car)
+        (make-polynome 0 0))))
 
-(defun vertex-multiplicity-polynome () ())
+(defun edge-list-weight-polynome (m u v)
+  (let ((edge-list (mapcar (lambda (a) (make-polynome a -1))
+                           (aref m u v))))
+    (if edge-list
+        (sort (reduce (lambda (acc p)
+                        (polynome+ acc (list p)))
+                      (cdr edge-list)
+                      :initial-value (list (car edge-list)))
+              #'> :key #'car)
+        (make-polynome 0 0))))
 
 (defun weighted-adjacency-matrix (m)
   (let ((lm (make-array (array-dimensions m)))
-        (n (array-dimension m  0)))
+        (n (array-dimension m 0)))
     (loop :for i :below n
-       :do (setf (row)))))
+       :do (loop :for j :below n
+              :do
+              (setf (aref lm i j)
+                    (if (= i j)
+                        (vertex-degree-polynome m i)
+                        (edge-list-weight-polynome m i j)))))
+    lm))
 
 (defun mst-count (m)
   (multiple-value-bind (nm min) (trim-to-min m)
@@ -436,7 +471,6 @@ for this function"
     (qr-determinant (cofactor (laplace-matrix nm) 0 0))))
 
 
-|#
 ;;; Test function
 
 (defun test ()
