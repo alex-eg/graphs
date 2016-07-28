@@ -440,7 +440,7 @@ for this function"
                        (cdr polynomes)
                        :initial-value (list (car polynomes)))
               #'> :key #'car)
-        (make-polynome 0 0))))
+        (list (make-polynome 0 0)))))
 
 (defun edge-list-weight-polynome (m u v)
   (let ((edge-list (mapcar (lambda (a) (make-polynome a -1))
@@ -451,7 +451,7 @@ for this function"
                       (cdr edge-list)
                       :initial-value (list (car edge-list)))
               #'> :key #'car)
-        (make-polynome 0 0))))
+        (list (make-polynome 0 0)))))
 
 (defun weighted-adjacency-matrix (m)
   (let ((lm (make-array (array-dimensions m)))
