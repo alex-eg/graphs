@@ -25,6 +25,21 @@ Example: (string-to-list \"1 2 3 wut quux\") -> '(1 2 3 wut quux)"
   (make-array (list n n)
               :initial-element nil))
 
+(defun make-random-square-matrix (n)
+  (let ((rm (make-square-matrix n)))
+    (loop :for i :below (* n n) :do
+       (setf (row-major-aref rm i)
+             (let ((r (random 4)))
+               (if (= r 0) nil (list r)))))
+    rm))
+
+(defun make-random-matrix (n m)
+  (let ((rm (make-array (list n m))))
+    (loop :for i :below (* n m) :do
+       (setf (row-major-aref rm i)
+             (random 4)))
+    rm))
+
 (defun v-len (v)
   (sqrt (* 1.0d0 ; without double precision results become unstable...
            (loop :for i :below (array-total-size v)
@@ -32,7 +47,7 @@ Example: (string-to-list \"1 2 3 wut quux\") -> '(1 2 3 wut quux)"
 
 (defun count-population (vec)
   "Counts total length of all vector elements.
-Used in counting edge "
+Used in counting vertex degree"
   (reduce (lambda (pop e)
             (+ pop (length e)))
           vec
@@ -94,14 +109,14 @@ Used in counting edge "
 "Sets edge of weighted directed graph without multiedges"
   (setf (aref m n1 n2) w))
 
-(defun get-row (m row-num)
+(defun row (m row-num)
   (let ((row-len (array-dimension m 1)))
     (make-array row-len
                 :displaced-to m
                 :displaced-index-offset (* row-num
                                            row-len))))
 
-(defun get-column (m col-num)
+(defun column (m col-num)
   (let* ((row-len (array-dimension m 1))
          (col-len (array-dimension m 0))
          (col
@@ -164,8 +179,8 @@ Works for weighted directed graphs without multiple edges"
                         (+ acc (* (car elems)
                                   (cdr elems))))
                       (map 'list #'cons
-                           (get-row m1 i)
-                           (get-column m2 j))
+                           (row m1 i)
+                           (column m2 j))
                       :initial-value 0))))
     nm))
 
@@ -174,26 +189,26 @@ Works for weighted directed graphs without multiple edges"
         (n (array-dimension m1 0))
         (m (array-dimension m1 1)))
     (loop :for j :below m
-       :do (let ((col (get-column m1 j)))
+       :do (let ((col (column m1 j)))
              (loop :for i :below n
                 :do (setf (aref tm j i) (aref col i)))))
     tm))
 
 (defun number-of-edges (m)
   (loop :for i :below (array-dimension m 0)
-     :sum (count-population (get-row m i))))
+     :sum (count-population (row m i))))
 
 (defun vertex-multiplicity (m u v)
-  "Number of edges joining u and v"
+  "Number of edges joining u and v, i.e. edge multiplicity"
   (+ (length (aref m u v))
      (length (aref m v u))))
 
 (defun vertex-degree (m v)
   "Number of edges incident to v"
   (+ (count-population
-      (get-row m v))
+      (row m v))
      (count-population
-      (get-column m v))))
+      (column m v))))
 
 (defun degree-matrix (m)
   (let ((lm (make-array (array-dimensions m)
@@ -237,19 +252,6 @@ for this function"
   (m- (degree-matrix m)
       (adjacency-matrix m)))
 
-(defun vertex-weighted-degree (m u v)
-  "Number of weighted monomes"
-  (let* ((edges-starting )
-         (unique (remove-duplicates (aref m u v))))
-    (reduce (lambda (acc elem)
-              (cons (count elem (aref m u v)))))))
-
-(defun weighted-adjacency-matrix (m)
-  (let ((lm (make-array (array-dimensions m)))
-        (n (array-dimension m  0)))
-    (loop :for i :below n
-       :do (setf (row)))))
-
 (defun cofactor (mat row col)
   (let* ((n (array-dimension mat 0))
          (m (array-dimension mat 1))
@@ -267,48 +269,38 @@ for this function"
                           (aref mat ii jj)))))
     mc))
 
-(defun a~-matrix (m n)
-  "Matrix m without the n-th row"
-  (let* ((col-num (array-dimension m 1)))
-    (cofactor m n (1+ col-num))))
-
-(defun determinant (m)
-  (cond ((equal (array-dimensions m) '(2 2))
-         (- (* (aref m 0 0) (aref m 1 1))
-            (* (aref m 0 1) (aref m 1 0))))
-        ((equal (array-dimensions m) '(1 1))
-         (aref m 0 0))
-        (t (loop :for i :below (array-dimension m 0)
-              :sum (* (if (evenp i) 1 -1)
-                      (aref m 0 i)
-                      (determinant (cofactor m 0 i)))))))
-
 (defun dot (u v)
+  "u and v dot product"
   (loop :for i :below (array-total-size u)
       :sum (* (aref u i) (aref v i))))
 
 (defun projection (a e)
+  "projection of a to e"
   (m.* e (/ (dot a e) (dot e e))))
 
 (defun qr-determinant (m)
+  "Find m determinant using qr-decomposition technique"
   (let ((u (make-array (list (array-dimension m 0)))))
-    (reduce #'*
-            (loop :for i :below (array-dimension m 0)
-               :collect (let* ((ai (get-column m i))
-                               (ui
-                                (setf (aref u i)
-                                      (apply
-                                       #'m-
-                                       (cons
-                                        ai
-                                        (loop :for j :from 1 :to i
-                                           :collect
-                                           (projection ai (aref u (1- j))))))))
-                               (ei (m./ ui (v-len ui))))
-                          (dot ei ai)))
-            :initial-value 1)))
+    (reduce
+     #'*
+     (loop :for i :below (array-dimension m 0)
+        :collect
+        (let* ((ai (column m i))
+               (ui
+                (setf (aref u i)
+                      (apply
+                       #'m-
+                       (cons
+                        ai
+                        (loop :for j :from 1 :to i
+                           :collect
+                           (projection ai (aref u (1- j))))))))
+               (ei (m./ ui (v-len ui))))
+          (dot ei ai)))
+     :initial-value 1)))
 
 (defun trim-to-min (m)
+  "Removes all multi-edges, leaving only minimum value in them"
   (let ((nm (make-array (array-dimensions m)))
         (min-edges 0))
     (loop
@@ -323,7 +315,13 @@ for this function"
                                          (row-major-aref m i))))))))
     (values nm min-edges)))
 
+(defun span-tree-count (m)
+  (qr-determinant (cofactor (laplace-matrix m) 0 0)))
+
+;;; Below unused testing functions
+
 (defun vec-min-edge (vec)
+  "Finds edge with minimal edge weight"
   (let ((initial-value (find-if-not #'null vec)))
     (if initial-value
         (reduce (lambda (acc e)
@@ -339,27 +337,107 @@ for this function"
           vec
           :initial-value 0))
 
-(defun span-tree-number (m)
-  (qr-determinant (cofactor (laplace-matrix m) 0 0)))
+;;; Various functions for counting MST in a graph
+;;; We introduce polynomial matrix, which contais polynomes of arbitrary weight
 
-(defun mst-number (m)
+;;; Kruskal's algorithm related functions
+
+(defstruct weighted-edge
+  "Edge with weight and starting and ending vertices"
+  (w 0 :type integer)
+  (from 0 :type integer)
+  (to 0 :type integer))
+
+(defun weight-edges-to-matrix (we-list)
+  "Build an adjacency matrix from weight edges list"
+  (let* ((from (mapcar #'weighted-edge-from we-list))
+         (to (mapcar #'weighted-edge-to we-list))
+         (vert-num (1+ (apply #'max (nconc from to))))
+         (m (make-array (list vert-num vert-num))))
+    (dolist (e we-list)
+      (setf (aref m (weighted-edge-from e)
+                  (weighted-edge-to e))
+            (weighted-edge-w e)))
+    m))
+
+(defun edges-vertices-list (m)
+  "Having graph matrix, convert it to list of weighted edges"
+  (let (edge-vert-list)
+    (loop :for i :below (array-total-size m)
+       :do (let* ((weight (row-major-aref m i))
+                  (n (array-dimension m 0))
+                  (from (floor i n))
+                  (to (mod i n)))
+             (when weight
+               (push (make-weighted-edge :w (car weight)
+                                         :from from
+                                         :to to)
+                     edge-vert-list))))
+    edge-vert-list))
+
+(defun subset-find (set v)
+  "Finds a subset containing and element v"
+  (find v set :test (lambda (v set)
+                      (find v set))))
+
+(defun subset-remove (set subset)
+  (delete subset set :test #'eq))
+
+(defun subset-merge (set subset-1 subset-2)
+  (nconc subset-1 subset-2)
+  (subset-remove set subset-2))
+
+(defun find-mst (m)
+  "Find mst using Kruskal's algorithm"
+  (let* ((edges (sort (edges-vertices-list (trim-to-min m))
+                      (lambda (a b) (< (weighted-edge-w a)
+                                       (weighted-edge-w b)))))
+         (verts-num (array-dimension m 0))
+         (subsets (loop :for i :below verts-num :collect (list i)))
+         mst)
+    (dolist (e edges)
+      (let* ((from (weighted-edge-from e))
+             (to (weighted-edge-to e))
+             (from-set (subset-find subsets from))
+             (to-set (subset-find subsets to)))
+        (unless (eq from-set to-set)    ; Otherwise they would form a cycle
+          (setf subsets (subset-merge subsets from-set to-set))
+          (println subsets)
+          (push e mst))))
+    mst))
+#|
+;;; Pieper algorithm for counting MST in graph
+
+(defun a~-matrix (m n)
+  "Matrix m without the n-th row"
+  (let* ((col-num (array-dimension m 1)))
+    (cofactor m n (1+ col-num))))
+
+;; Polynome is list of lists, where each member is a pair (power . coefficient)
+
+(defun vertex-degree-polynome (m u)
+  "Sum of weigth polynomes of the vertex"
+  (let* ((edges-starting )
+         (unique (remove-duplicates (aref m u v))))
+    (reduce (lambda (acc elem)
+              (cons (count elem (aref m u v)))))))
+
+(defun vertex-multiplicity-polynome () ())
+
+(defun weighted-adjacency-matrix (m)
+  (let ((lm (make-array (array-dimensions m)))
+        (n (array-dimension m  0)))
+    (loop :for i :below n
+       :do (setf (row)))))
+
+(defun mst-count (m)
   (multiple-value-bind (nm min) (trim-to-min m)
+    (declare (ignore min))
     (qr-determinant (cofactor (laplace-matrix nm) 0 0))))
 
-(defun make-random-square-matrix (n)
-  (let ((rm (make-square-matrix n)))
-    (loop :for i :below (* n n) :do
-       (setf (row-major-aref rm i)
-             (let ((r (random 4)))
-               (if (= r 0) nil (list r)))))
-    rm))
 
-(defun make-random-matrix (n m)
-  (let ((rm (make-array (list n m))))
-    (loop :for i :below (* n m) :do
-       (setf (row-major-aref rm i)
-             (random 4)))
- rm))
+|#
+;;; Test function
 
 (defun test ()
   (princ (/ 1 (span-tree-number (read-matrix-from-string "4 4
