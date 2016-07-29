@@ -424,6 +424,18 @@ for this function"
                                  (cff (car b))))
                (polynome+ (cdr a) (cdr b))))))
 
+(defun polynome/ (polynome monome)
+  (mapcar (lambda (mm)
+            (if (= (cff mm) 0)
+                mm
+                (progn
+                  (rplaca mm (- (pwr mm) (pwr monome)))
+                  (rplacd mm (/ (cff mm) (cff monome))))))
+          polynome))
+
+(defun polynome-min-power (polynome)
+  (apply #'min (mapcar #'car (mapcar #'last polynome))))
+
 (defun monome* (a num)
   (make-monome (pwr a)
                  (* num (cff a))))
@@ -464,6 +476,23 @@ for this function"
                         (vertex-degree-polynome m i)
                         (edge-list-weight-polynome m i j)))))
     lm))
+
+(defun factor-out (m)
+  "Factors out monomials and returns matrix with value x = 0"
+  (let ((n (array-dimension m 0))
+        (nm (make-array (array-dimensions m))))
+    (loop :for j :below n :do
+       (let* ((col (column m j))
+              (min-pow (apply #'min
+                              (remove 0
+                                      (map 'list #'polynome-min-power col)))))
+         (loop :for i :below n :do
+            (setf (aref nm i j)
+                  (cdar (last
+                        (polynome/ (aref col i)
+                                   (cons min-pow 1))))))))
+    nm))
+
 
 (defun mst-count (m)
   (multiple-value-bind (nm min) (trim-to-min m)
