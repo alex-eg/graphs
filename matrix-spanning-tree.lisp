@@ -397,15 +397,15 @@ for this function"
 ;; Polynome is list of lists, where each member is a pair (power . coefficient)
 ;; Sorted by power
 
-(defun make-polynome (power coefficient)
+(defun make-monome (power coefficient)
   (cons power coefficient))
 
 (defun pwr (a)
-"Polynome power"
+"Monome power"
   (car a))
 
 (defun cff (a)
-"Polynome coefficient"
+"Monome coefficient"
   (cdr a))
 
 (defun polynome+ (a b)
@@ -419,19 +419,19 @@ for this function"
          (cons (car b) (polynome+ a (cdr b))))
         ((= (pwr (car a))
             (pwr (car b)))
-         (cons (make-polynome (pwr (car a))
+         (cons (make-monome (pwr (car a))
                               (+ (cff (car a))
                                  (cff (car b))))
                (polynome+ (cdr a) (cdr b))))))
 
 (defun monome* (a num)
-  (make-polynome (pwr a)
+  (make-monome (pwr a)
                  (* num (cff a))))
 
 (defun vertex-degree-polynome (m u)
   "Sum of all weigth polynomes of the vertex"
   (let* ((edges-starting (row m u))
-         (polynomes (mapcar (lambda (a) (make-polynome a 1))
+         (polynomes (mapcar (lambda (a) (make-monome a 1))
                             (reduce #'append
                                  (remove-if #'null edges-starting)))))
     (if polynomes
@@ -440,10 +440,10 @@ for this function"
                        (cdr polynomes)
                        :initial-value (list (car polynomes)))
               #'> :key #'car)
-        (list (make-polynome 0 0)))))
+        (list (make-monome 0 0)))))
 
 (defun edge-list-weight-polynome (m u v)
-  (let ((edge-list (mapcar (lambda (a) (make-polynome a -1))
+  (let ((edge-list (mapcar (lambda (a) (make-monome a -1))
                            (aref m u v))))
     (if edge-list
         (sort (reduce (lambda (acc p)
@@ -451,7 +451,7 @@ for this function"
                       (cdr edge-list)
                       :initial-value (list (car edge-list)))
               #'> :key #'car)
-        (list (make-polynome 0 0)))))
+        (list (make-monome 0 0)))))
 
 (defun weighted-adjacency-matrix (m)
   (let ((lm (make-array (array-dimensions m)))
