@@ -329,9 +329,6 @@ for this function"
                                                   edge)))))))))
     (values nm min-edges)))
 
-(defun span-tree-count (m)
-  (qr-determinant (cofactor (laplace-matrix m) 0 0)))
-
 ;;; Various functions for counting MST in a graph
 ;;; We introduce polynomial matrix, which contais polynomes of arbitrary weight
 
