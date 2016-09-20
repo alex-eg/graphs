@@ -394,7 +394,6 @@ for this function"
              (to-set (subset-find subsets to)))
         (unless (eq from-set to-set)    ; Otherwise they would form a cycle
           (setf subsets (subset-merge subsets from-set to-set))
-          (println subsets)
           (push e mst))))
     mst))
 
