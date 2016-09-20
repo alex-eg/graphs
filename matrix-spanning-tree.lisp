@@ -43,7 +43,8 @@ Example: (string-to-list \"1 2 3 wut quux\") -> '(1 2 3 wut quux)"
 (defun v-len (v)
   (sqrt (* 1.0d0 ; without double precision results become unstable...
            (loop :for i :below (array-total-size v)
-              :sum (expt (aref v i) 2)))))
+              :sum (let ((a (aref v i)))
+                     (* a a))))))
 
 (defun count-population (vec)
   "Counts total length of all vector elements.
