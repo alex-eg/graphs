@@ -458,20 +458,27 @@ for this function"
   (cdr a))
 
 (defun polynome+ (a b)
+  (let* ((sum (%polynome+ a b)))
+    (setf sum (remove-if #'zerop sum :key #'cff))
+    (if (null sum)
+        (list (make-monome 0 0))
+        sum)))
+
+(defun %polynome+ (a b)
   (cond ((null b) a)
         ((null a) b)
         ((> (pwr (car a))
             (pwr (car b)))
-         (cons (car a) (polynome+ (cdr a) b)))
+         (cons (car a) (%polynome+ (cdr a) b)))
         ((< (pwr (car a))
             (pwr (car b)))
-         (cons (car b) (polynome+ a (cdr b))))
+         (cons (car b) (%polynome+ a (cdr b))))
         ((= (pwr (car a))
             (pwr (car b)))
          (cons (make-monome (pwr (car a))
-                              (+ (cff (car a))
-                                 (cff (car b))))
-               (polynome+ (cdr a) (cdr b))))))
+                            (+ (cff (car a))
+                               (cff (car b))))
+               (%polynome+ (cdr a) (cdr b))))))
 
 (defun polynome/ (polynome monome)
   (let ((polynome (copy-tree polynome))
@@ -539,9 +546,12 @@ for this function"
                                       (map 'list #'polynome-min-power col)))))
          (loop :for i :below n :do
             (setf (aref nm i j)
-                  (cdar (last
-                        (polynome/ (aref col i)
-                                   (cons min-pow 1))))))))
+                  (let ((min (car (last
+                                   (polynome/ (aref col i)
+                                              (cons min-pow 1))))))
+                    (if (= 0 (pwr min))
+                        (cff min)
+                        0))))))
     nm))
 
 
