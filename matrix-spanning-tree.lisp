@@ -103,12 +103,14 @@ Used in counting vertex degree"
 ;;; Setters and getters
 
 (defun set-edge (m n1 n2 w)
-"Sets edge of weighted directed graph with multiedges"
-  (push w (aref m n1 n2)))
+  "Sets edge of weighted directed graph with multiedges"
+  (push w (aref m n1 n2))
+  (push w (aref m n2 n1)))
 
 (defun set-edge-num (m n1 n2 w)
-"Sets edge of weighted directed graph without multiedges"
-  (setf (aref m n1 n2) w))
+  "Sets edge of weighted directed graph without multiedges"
+  (setf (aref m n1 n2) w)
+  (setf (aref m n2 n1) w))
 
 (defun row (m row-num)
   (let ((row-len (array-dimension m 1)))
@@ -201,15 +203,12 @@ Works for weighted directed graphs without multiple edges"
 
 (defun vertex-multiplicity (m u v)
   "Number of edges joining u and v, i.e. edge multiplicity"
-  (+ (length (aref m u v))
-     (length (aref m v u))))
+  (length (aref m u v)))
 
 (defun vertex-degree (m v)
   "Number of edges incident to v"
-  (+ (count-population
-      (row m v))
-     (count-population
-      (column m v))))
+  (count-population
+   (row m v)))
 
 (defun degree-matrix (m)
   (let ((lm (make-array (array-dimensions m)
@@ -302,18 +301,25 @@ for this function"
 
 (defun trim-to-min (m)
   "Removes all multi-edges, leaving only minimum value in them"
-  (let ((nm (make-array (array-dimensions m)))
-        (min-edges 0))
+  (let* ((n (array-dimension m 0))
+         (nm (make-array (array-dimensions m)))
+         (min-edges 1))
     (loop
-       :for i :below (array-total-size m)
-       :do (let* ((edge (row-major-aref m i)))
-             (setf (row-major-aref nm i)
-                   (if (not (null edge))
-                       (let ((min (apply #'min edge)))
-                         (incf min-edges (count min edge))
-                         (remove-duplicates
-                          (remove-if-not (lambda (e) (= e min))
-                                         (row-major-aref m i))))))))
+       :for i :below n
+       :do
+       (loop
+          :for j :from i :below n
+          :do (let*
+                  ((edge (aref m i j)))
+                (setf (aref nm i j)
+                      (setf (aref nm j i)
+                            (if (not (null edge))
+                                (let ((min (apply #'min edge)))
+                                  (setf min-edges (* min-edges
+                                                     (count min edge)))
+                                  (remove-duplicates
+                                   (remove-if-not (lambda (e) (= e min))
+                                                  edge)))))))))
     (values nm min-edges)))
 
 (defun span-tree-count (m)
