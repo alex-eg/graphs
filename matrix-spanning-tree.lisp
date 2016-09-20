@@ -273,7 +273,7 @@ for this function"
               :do (setf (aref mc i j)
                         (let ((ii (if (>= i row) (1+ i) i))
                               (jj (if (>= j col) (1+ j) j)))
-                          (aref mat ii jj)))))
+                          (copy-tree (aref mat ii jj))))))
     mc))
 
 (defun dot (u v)
@@ -474,13 +474,15 @@ for this function"
                (polynome+ (cdr a) (cdr b))))))
 
 (defun polynome/ (polynome monome)
-  (mapcar (lambda (mm)
-            (if (= (cff mm) 0)
-                mm
-                (progn
-                  (rplaca mm (- (pwr mm) (pwr monome)))
-                  (rplacd mm (/ (cff mm) (cff monome))))))
-          polynome))
+  (let ((polynome (copy-tree polynome))
+        (monome (copy-tree monome)))
+    (mapcar (lambda (mm)
+              (if (= (cff mm) 0)
+                  mm
+                  (progn
+                    (rplaca mm (- (pwr mm) (pwr monome)))
+                    (rplacd mm (/ (cff mm) (cff monome))))))
+            polynome)))
 
 (defun polynome-min-power (polynome)
   (apply #'min (mapcar #'car (mapcar #'last polynome))))
