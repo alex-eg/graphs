@@ -130,6 +130,13 @@ Used in counting vertex degree"
                                   col-num))))
     col))
 
+(defun set-colunm (m col-num new-col)
+  (let ((n (array-dimension m 0)))
+    (loop :for i :below n :do
+       (setf (row-major-aref m (+ (* n i)
+                                  col-num))
+             (aref new-col i)))))
+
 ;;;  Matrix (and vector, being 1 x n matrixes) operations
 
 (defmacro defm (name operator)
