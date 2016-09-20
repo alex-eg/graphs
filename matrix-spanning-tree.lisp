@@ -285,6 +285,30 @@ for this function"
   "projection of a to e"
   (m.* e (/ (dot a e) (dot e e))))
 
+(defun compute-u-k (k v u-vector)
+  (if (= k 0) v
+      (loop
+         :for uk := (m- v (projection v (aref u-vector j)))
+         :then (m- uk (projection uk (aref u-vector j)))
+         :for j :below k
+         :finally (return uk))))
+
+(defun qr-determinant-stable (m)
+  "Find m determinant using qr-decomposition technique,
+using Modified Gram-Schmidt process"
+  (let ((u (make-array (list (array-dimension m 0)))))
+    (reduce
+     #'*
+     (loop :for i :below (array-dimension m 0)
+        :collect
+        (let* ((ai (column m i))
+               (ui
+                (setf (aref u i)
+                      (compute-u-k i ai u)))
+               (ei (m./ ui (v-len ui))))
+          (dot ei ai)))
+     :initial-value 1)))
+
 (defun qr-determinant (m)
   "Find m determinant using qr-decomposition technique"
   (let ((u (make-array (list (array-dimension m 0)))))
@@ -631,7 +655,7 @@ matrix by linear combination of columns"
      (build-tree-from-edges (find-mst m))))))
 
 (defun st-count (m)
-  (qr-determinant (cofactor (laplace-matrix m) 0 0)))
+  (qr-determinant-stable (cofactor (laplace-matrix m) 0 0)))
 
 
 ;;; Test function
