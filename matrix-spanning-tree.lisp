@@ -579,6 +579,31 @@ for this function"
                         (edge-list-weight-polynome m i j)))))
     lm))
 
+(defun trace-weighted-mst (wm mst)
+  "The key function to Pieper algorithm. We traverse MST and modify weighted
+matrix by linear combination of columns"
+  (let* ((n (array-dimension wm 0))
+         (co-wm (cofactor wm n n)))
+    (do ((f (find-leaf mst) (find-leaf mst)))
+        ((= 1 (length mst)))
+      (let* ((parent (car f))
+             (leaf (caadr f)))
+        (unless (or (= parent (1- n))
+                    (= leaf (1- n)))
+          (let ((col-1 (column co-wm parent))
+                (col-2 (column co-wm leaf)))
+;            (format t "~%~%~A->~A~%" leaf parent)
+            (set-colunm co-wm parent
+                        (map 'vector (lambda (e)
+                                       (if (null e)
+                                           (list (make-monome 0 0))
+                                           e))
+                             (map 'vector #'polynome+ col-1 col-2)))
+ ;           (print-matrix co-wm :print-function #'print-polynome)
+            ))
+        (setf (cdr f) (cddr f))))
+    co-wm))
+
 (defun factor-out (m)
   "Factors out monomials and returns matrix with value x = 0"
   (let ((n (array-dimension m 0))
