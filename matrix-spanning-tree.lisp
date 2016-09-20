@@ -299,9 +299,9 @@ for this function"
                        #'m-
                        (cons
                         ai
-                        (loop :for j :from 1 :to i
+                        (loop :for j :below i
                            :collect
-                           (projection ai (aref u (1- j))))))))
+                           (projection ai (aref u j)))))))
                (ei (m./ ui (v-len ui))))
           (dot ei ai)))
      :initial-value 1)))
