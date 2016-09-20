@@ -90,14 +90,14 @@ Used in counting vertex degree"
                             s))))
     m))
 
-(defun print-matrix (m)
+(defun print-matrix (m &key (print-function #'princ))
   (let ((row-length (array-dimension m 1)))
     (loop :for i :below (array-total-size m)
        :do (if (zerop (mod i row-length))
                (terpri)
-               (princ #\Space))
-       (princ (row-major-aref m i))))
-    m)
+               (princ "	"))
+       (funcall print-function (row-major-aref m i))))
+  m)
 
 ;;; Setters and getters
 
@@ -396,6 +396,41 @@ for this function"
 
 ;; Polynome is list of lists, where each member is a pair (power . coefficient)
 ;; Sorted by power
+
+(defun number-superscript (number)
+  (coerce (nreverse (%number-superscript number)) 'string))
+
+(defun %number-superscript (number)
+  (let ((super-scripts (list
+                        #\SUPERSCRIPT_ZERO
+                        #\SUPERSCRIPT_ONE
+                        #\SUPERSCRIPT_TWO
+                        #\SUPERSCRIPT_THREE
+                        #\SUPERSCRIPT_FOUR
+                        #\SUPERSCRIPT_FIVE
+                        #\SUPERSCRIPT_SIX
+                        #\SUPERSCRIPT_SEVEN
+                        #\SUPERSCRIPT_EIGHT
+                        #\SUPERSCRIPT_NINE)))
+    (if (= 0 number) nil
+        (cons (nth (mod number 10) super-scripts)
+              (%number-superscript (floor number 10))))))
+
+(defun print-monome (m &key print-sign)
+  (let ((pwr (pwr m))
+        (cff (cff m)))
+    (cond ((= cff 0) (princ 0) (return-from print-monome))
+          ((and (= cff 1) print-sign) (princ "+"))
+          ((= cff -1) (princ "-"))
+          (t (if (and (> cff 1) print-sign) (princ "+"))
+           (princ cff)))
+    (unless (= pwr 0) (princ "x"))
+    (cond ((> pwr 1) (princ (number-superscript pwr))))))
+
+(defun print-polynome (p)
+  (print-monome (car p))
+  (mapcar (lambda (e) (print-monome e :print-sign t))
+          (cdr p)))
 
 (defun make-monome (power coefficient)
   (cons power coefficient))
