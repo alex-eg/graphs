@@ -636,9 +636,8 @@ matrix by linear combination of columns"
 
 ;;; Test function
 
-(defun test ()
-  (princ (/ 1 (span-tree-number (read-matrix-from-string "4 4
-1 2 1
-2 3 4
-3 4 3
-4 1 2")))))
+(defun test (str)
+  (let* ((a (read-matrix-from-string str))
+         (mst (mst-count a))
+         (st (st-count a)))
+    (princ (/ (round mst) (round st)))))
