@@ -623,11 +623,15 @@ matrix by linear combination of columns"
                         0))))))
     nm))
 
-
 (defun mst-count (m)
-  (multiple-value-bind (nm min) (trim-to-min m)
-    (declare (ignore min))
-    (qr-determinant (cofactor (laplace-matrix nm) 0 0))))
+  (qr-determinant
+   (factor-out
+    (trace-weighted-mst
+     (weighted-adjacency-matrix m)
+     (build-tree-from-edges (find-mst m))))))
+
+(defun st-count (m)
+  (qr-determinant (cofactor (laplace-matrix m) 0 0)))
 
 
 ;;; Test function
