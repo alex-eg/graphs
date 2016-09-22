@@ -330,6 +330,24 @@ using Modified Gram-Schmidt process"
           (dot ei ai)))
      :initial-value 1)))
 
+(defun determinant (m)
+  "(Modified) naive implementation "
+  (let ((n (array-dimension m 0)))
+    (cond ((= n 1) (row-major-aref m 0))
+          ((= n 2)
+           (- (* (row-major-aref m 0)
+                 (row-major-aref m 3))
+              (* (row-major-aref m 1)
+                 (row-major-aref m 2))))
+          ((> n 2)
+           (apply #'+
+                  (loop :for i :below n
+                     :collect (if (= (row-major-aref m i) 0)
+                                  0
+                                  (* (if (oddp i) -1 1)
+                                     (row-major-aref m i)
+                                     (determinant (cofactor m 0 i))))))))))
+
 (defun trim-to-min (m)
   "Removes all multi-edges, leaving only minimum value in them"
   (let* ((n (array-dimension m 0))
