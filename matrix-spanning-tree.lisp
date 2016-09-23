@@ -532,15 +532,15 @@ using Modified Gram-Schmidt process"
           (cdr p)))
 
 (defun make-monomial (power coefficient)
-  (cons power coefficient))
+  (cons coefficient power))
 
 (defun pwr (a)
 "Monomial power"
-  (car a))
+  (cdr a))
 
 (defun cff (a)
 "Monomial coefficient"
-  (cdr a))
+  (car a))
 
 (defun polynomial+ (a b)
   (let* ((sum (%polynomial+ a b)))
