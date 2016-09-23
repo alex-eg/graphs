@@ -498,23 +498,22 @@ using Modified Gram-Schmidt process"
 ;; Sorted by power
 
 (defun number-superscript (number)
-  (coerce (nreverse (%number-superscript number)) 'string))
-
-(defun %number-superscript (number)
-  (let ((super-scripts (list
-                        #\SUPERSCRIPT_ZERO
-                        #\SUPERSCRIPT_ONE
-                        #\SUPERSCRIPT_TWO
-                        #\SUPERSCRIPT_THREE
-                        #\SUPERSCRIPT_FOUR
-                        #\SUPERSCRIPT_FIVE
-                        #\SUPERSCRIPT_SIX
-                        #\SUPERSCRIPT_SEVEN
-                        #\SUPERSCRIPT_EIGHT
-                        #\SUPERSCRIPT_NINE)))
-    (if (= 0 number) nil
-        (cons (nth (mod number 10) super-scripts)
-              (%number-superscript (floor number 10))))))
+  (labels ((reverse-superscript (number)
+             (let ((super-scripts (list
+                                   #\SUPERSCRIPT_ZERO
+                                   #\SUPERSCRIPT_ONE
+                                   #\SUPERSCRIPT_TWO
+                                   #\SUPERSCRIPT_THREE
+                                   #\SUPERSCRIPT_FOUR
+                                   #\SUPERSCRIPT_FIVE
+                                   #\SUPERSCRIPT_SIX
+                                   #\SUPERSCRIPT_SEVEN
+                                   #\SUPERSCRIPT_EIGHT
+                                   #\SUPERSCRIPT_NINE)))
+               (if (= 0 number) nil
+                   (cons (nth (mod number 10) super-scripts)
+                         (reverse-superscript (floor number 10)))))))
+    (coerce (nreverse (reverse-superscript number)) 'string)))
 
 (defun print-monome (m &key print-sign)
   (let ((pwr (pwr m))
