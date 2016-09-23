@@ -576,6 +576,8 @@ using Modified Gram-Schmidt process"
                     (rplacd mm (/ (cff mm) (cff monomial))))))
             polynomial)))
 
+(defun make-polynomial (&rest monomials)
+  (apply #'list (sort monomials #'> :key #'pwr)))
 
 (defun polynomial-min-power (polynomial)
   (apply #'min (mapcar #'car (mapcar #'last polynomial))))
