@@ -372,7 +372,7 @@ using Modified Gram-Schmidt process"
     (values nm min-edges)))
 
 ;;; Various functions for counting MST in a graph
-;;; We introduce polynomial matrix, which contais polynomes of arbitrary weight
+;;; We introduce polynomial matrix, which contais polynomials of arbitrary weight
 
 ;;; Kruskal's algorithm related functions
 
@@ -494,7 +494,7 @@ using Modified Gram-Schmidt process"
   (let* ((col-num (array-dimension m 1)))
     (cofactor m n (1+ col-num))))
 
-;; Polynome is list of lists, where each member is a pair (power . coefficient)
+;; Polynomial is list of lists, where each member is a pair (power . coefficient)
 ;; Sorted by power
 
 (defun number-superscript (number)
@@ -515,10 +515,10 @@ using Modified Gram-Schmidt process"
                          (reverse-superscript (floor number 10)))))))
     (coerce (nreverse (reverse-superscript number)) 'string)))
 
-(defun print-monome (m &key print-sign)
+(defun print-monomial (m &key print-sign)
   (let ((pwr (pwr m))
         (cff (cff m)))
-    (cond ((= cff 0) (princ 0) (return-from print-monome))
+    (cond ((= cff 0) (princ 0) (return-from print-monomial))
           ((and (= cff 1) print-sign) (princ "+"))
           ((= cff -1) (princ "-"))
           (t (if (and (> cff 1) print-sign) (princ "+"))
@@ -526,87 +526,88 @@ using Modified Gram-Schmidt process"
     (unless (= pwr 0) (princ "x"))
     (cond ((> pwr 1) (princ (number-superscript pwr))))))
 
-(defun print-polynome (p)
-  (print-monome (car p))
-  (mapcar (lambda (e) (print-monome e :print-sign t))
+(defun print-polynomial (p)
+  (print-monomial (car p))
+  (mapcar (lambda (e) (print-monomial e :print-sign t))
           (cdr p)))
 
-(defun make-monome (power coefficient)
+(defun make-monomial (power coefficient)
   (cons power coefficient))
 
 (defun pwr (a)
-"Monome power"
+"Monomial power"
   (car a))
 
 (defun cff (a)
-"Monome coefficient"
+"Monomial coefficient"
   (cdr a))
 
-(defun polynome+ (a b)
-  (let* ((sum (%polynome+ a b)))
+(defun polynomial+ (a b)
+  (let* ((sum (%polynomial+ a b)))
     (setf sum (remove-if #'zerop sum :key #'cff))
     (if (null sum)
-        (list (make-monome 0 0))
+        (list (make-monomial 0 0))
         sum)))
 
-(defun %polynome+ (a b)
+(defun %polynomial+ (a b)
   (cond ((null b) a)
         ((null a) b)
         ((> (pwr (car a))
             (pwr (car b)))
-         (cons (car a) (%polynome+ (cdr a) b)))
+         (cons (car a) (%polynomial+ (cdr a) b)))
         ((< (pwr (car a))
             (pwr (car b)))
-         (cons (car b) (%polynome+ a (cdr b))))
+         (cons (car b) (%polynomial+ a (cdr b))))
         ((= (pwr (car a))
             (pwr (car b)))
-         (cons (make-monome (pwr (car a))
+         (cons (make-monomial (pwr (car a))
                             (+ (cff (car a))
                                (cff (car b))))
-               (%polynome+ (cdr a) (cdr b))))))
+               (%polynomial+ (cdr a) (cdr b))))))
 
-(defun polynome/ (polynome monome)
-  (let ((polynome (copy-tree polynome))
-        (monome (copy-tree monome)))
+(defun polynomial/ (polynomial monomial)
+  (let ((polynomial (copy-tree polynomial))
+        (monomial (copy-tree monomial)))
     (mapcar (lambda (mm)
               (if (= (cff mm) 0)
                   mm
                   (progn
-                    (rplaca mm (- (pwr mm) (pwr monome)))
-                    (rplacd mm (/ (cff mm) (cff monome))))))
-            polynome)))
+                    (rplaca mm (- (pwr mm) (pwr monomial)))
+                    (rplacd mm (/ (cff mm) (cff monomial))))))
+            polynomial)))
 
-(defun polynome-min-power (polynome)
-  (apply #'min (mapcar #'car (mapcar #'last polynome))))
 
-(defun monome* (a num)
-  (make-monome (pwr a)
+(defun polynomial-min-power (polynomial)
+  (apply #'min (mapcar #'car (mapcar #'last polynomial))))
+
+(defun monomial* (a num)
+  (make-monomial (pwr a)
                  (* num (cff a))))
 
-(defun vertex-degree-polynome (m u)
-  "Sum of all weigth polynomes of the vertex"
+(defun vertex-degree-polynomial (m u)
+  "Sum of all weigth polynomials of the vertex"
   (let* ((edges-starting (row m u))
-         (polynomes (mapcar (lambda (a) (make-monome a 1))
+         (polynomials (mapcar (lambda (a) (make-monomial a 1))
                             (reduce #'append
                                  (remove-if #'null edges-starting)))))
-    (if polynomes
+    (if polynomials
         (sort (reduce (lambda (acc p)
-                        (polynome+ acc (list p)))
-                       (cdr polynomes)
-                       :initial-value (list (car polynomes)))
+                        (polynomial+ acc (list p)))
+                       (cdr polynomials)
+                       :initial-value (list (car polynomials)))
               #'> :key #'car)
-        (list (make-monome 0 0)))))
+        (list (make-monomial 0 0)))))
 
-(defun edge-list-weight-polynome (m u v)
-  (let ((edge-list (mapcar (lambda (a) (make-monome a -1))
+(defun edge-list-weight-polynomial (m u v)
+  (let ((edge-list (mapcar (lambda (a) (make-monomial a -1))
                            (aref m u v))))
     (if edge-list
         (sort (reduce (lambda (acc p)
-                        (polynome+ acc (list p)))
+                        (polynomial+ acc (list p)))
                       (cdr edge-list)
                       :initial-value (list (car edge-list)))
               #'> :key #'car)
-        (list (make-monome 0 0)))))
+        (list (make-monomial 0 0)))))
 
 (defun weighted-adjacency-matrix (m)
   (let ((lm (make-array (array-dimensions m)))
@@ -616,8 +617,8 @@ using Modified Gram-Schmidt process"
               :do
               (setf (aref lm i j)
                     (if (= i j)
-                        (vertex-degree-polynome m i)
-                        (edge-list-weight-polynome m i j)))))
+                        (vertex-degree-polynomial m i)
+                        (edge-list-weight-polynomial m i j)))))
     lm))
 
 (defun trace-weighted-mst (wm mst)
@@ -637,10 +638,10 @@ matrix by linear combination of columns"
             (set-colunm co-wm parent
                         (map 'vector (lambda (e)
                                        (if (null e)
-                                           (list (make-monome 0 0))
+                                           (list (make-monomial 0 0))
                                            e))
-                             (map 'vector #'polynome+ col-1 col-2)))
- ;           (print-matrix co-wm :print-function #'print-polynome)
+                             (map 'vector #'polynomial+ col-1 col-2)))
+ ;           (print-matrix co-wm :print-function #'print-polynomial)
             ))
         (setf (cdr f) (cddr f))))
     co-wm))
@@ -653,11 +654,11 @@ matrix by linear combination of columns"
        (let* ((col (column m j))
               (min-pow (apply #'min
                               (remove 0
-                                      (map 'list #'polynome-min-power col)))))
+                                      (map 'list #'polynomial-min-power col)))))
          (loop :for i :below n :do
             (setf (aref nm i j)
                   (let ((min (car (last
-                                   (polynome/ (aref col i)
+                                   (polynomial/ (aref col i)
                                               (cons min-pow 1))))))
                     (if (= 0 (pwr min))
                         (cff min)
