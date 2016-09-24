@@ -118,6 +118,12 @@ Used in counting vertex degree"
                 :displaced-to m
                 :displaced-index-offset (* row-num
                                            row-len))))
+(defun set-row (m row-num new-row)
+  (let ((row-len (array-dimension m 1)))
+    (loop :for i :from (* row-num row-len)
+       :below (* (1+ row-num) row-len)
+       :for k :from 0
+       :do (setf (row-major-aref m i) (aref new-row k)))))
 
 (defun column (m col-num)
   (let* ((row-len (array-dimension m 1))
