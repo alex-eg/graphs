@@ -697,14 +697,14 @@ matrix by linear combination of columns"
     nm))
 
 (defun mst-count (m)
-  (qr-determinant
+  (gj-determinant
    (factor-out
     (trace-weighted-mst
      (weighted-adjacency-matrix m)
      (build-tree-from-edges (find-mst m))))))
 
 (defun st-count (m)
-  (qr-determinant-stable (cofactor (laplace-matrix m) 0 0)))
+  (gj-determinant (cofactor (laplace-matrix m) 0 0)))
 
 
 ;;; Test function
