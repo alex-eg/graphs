@@ -354,6 +354,29 @@ using Modified Gram-Schmidt process"
                                      (row-major-aref m i)
                                      (determinant (cofactor m 0 i))))))))))
 
+(defun gauss-jordan-eliminate (m)
+  "Coerce matrix to echelon form using Gauss-Jordan elimination"
+  (let ((n (array-dimension m 0)))
+    (loop :for i :below n
+       :do
+       (let ((row (row m i)))
+         (loop :for ii :from (1+ i) :below n
+            :do
+            (let* ((current-row (row m ii))
+                   (multiplier (/ (aref current-row i)
+                                  (aref row i)))
+                   (sub-row (m.* row multiplier))
+                   (new-row (m- current-row sub-row)))
+              (set-row m ii new-row)))))
+    m))
+
+(defun gj-determinant (m)
+  (let ((gj-m (gauss-jordan-eliminate m))
+        (det 1))
+    (loop :for i :below (array-dimension m 0)
+       :do (setf det (* det (aref gj-m i i))))
+    det))
+
 (defun trim-to-min (m)
   "Removes all multi-edges, leaving only minimum value in them"
   (let* ((n (array-dimension m 0))
