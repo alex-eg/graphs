@@ -1,4 +1,5 @@
 * CL graph-oriented math library
+[[https://opensource.org/licenses/MIT][https://img.shields.io/badge/License-MIT-teal.svg]]
 Was created for personal use (Hackerrank graph theory set of challenges).
 I tried to keep things as simple and naïve as possible.
 
