@@ -1,0 +1,5 @@
+* CL graph-oriented math library
+Was created for personal use (Hackerrank graph theory set of challenges).
+I tried to keep things as simple and naïve as possible.
+
+Feel free to use parts of the code anywhere.
