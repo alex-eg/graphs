@@ -1,7 +1,30 @@
 (defpackage :cl-math.graph
-  (:use :cl)
+  (:use
+   :cl
+   :cl-math.polynomial
+   :cl-math.matrix
+   :cl-math.list
+   :cl-math.set)
+
   (:export
-   ))
+   :set-edge
+   :set-edge-num
+   :number-of-edges
+   :vertex-multiplicity
+   :vertex-degree
+
+   ;; Graph matrices
+   :degree-matrix
+   :adjacency-matrix
+   :incidence-matrix
+   :laplace-matrix
+
+   ;; Spanning tree algorithms
+   :mst-find-kruskal
+   :st-count-kirchhoff
+   :mst-count-pieper))
+
+(in-package :cl-math.graph)
 
 (defun set-edge (m n1 n2 w)
   "Set edge of weighted directed graph with multiedges"
@@ -83,8 +106,7 @@ for this function"
          (loop
            :for j :from i :below n
            :do
-              (let*
-                  ((edge (aref m i j)))
+              (let* ((edge (aref m i j)))
                 (setf (aref nm i j)
                       (setf (aref nm j i)
                             (if (not (null edge))
@@ -130,14 +152,14 @@ for this function"
                      edge-vert-list))))
     edge-vert-list))
 
-(defun find-mst-kruskal (m)
+(defun mst-find-kruskal (m)
   "Find (a certain) MST using Kruskal's algorithm"
   (let* ((edges (sort (edges-vertices-list (trim-to-min m))
                       (lambda (a b) (< (weighted-edge-w a)
                                        (weighted-edge-w b)))))
          (verts-num (array-dimension m 0))
          (subsets (loop :for i :below verts-num :collect (list i)))
-         mst)
+         (mst (list)))
     (dolist (e edges)
       (let* ((from (weighted-edge-from e))
              (to (weighted-edge-to e))
@@ -191,7 +213,7 @@ for this function"
   "The key function to Pieper algorithm. We traverse MST and modify weighted
 matrix by linear combination of columns"
   (let* ((n (array-dimension wm 0))
-         (co-wm (cofactor wm n n)))
+         (co-wm (cofactor-matrix wm n n)))
     (do ((f (find-leaf mst) (find-leaf mst)))
         ((= 1 (length mst)))
       (let* ((parent (car f))
@@ -200,7 +222,7 @@ matrix by linear combination of columns"
                     (= leaf (1- n)))
           (let ((col-1 (column co-wm parent))
                 (col-2 (column co-wm leaf)))
-            (set-colunm co-wm parent
+            (set-column co-wm parent
                         (map 'vector
                              (lambda (e)
                                (if (null e)
@@ -215,28 +237,68 @@ matrix by linear combination of columns"
   (let ((n (array-dimension m 0))
         (nm (make-array (array-dimensions m))))
     (loop :for j :below n :do
-       (let* ((col (column m j))
-              (min-pow (apply #'min
-                              (remove 0
-                                      (map 'list #'polynomial-min-power col)))))
-         (loop :for i :below n :do
-            (setf (aref nm i j)
-                  (let ((min (car (last
-                                   (polynomial/ (aref col i)
+      (let* ((col (column m j))
+             (min-pow (apply #'min
+                             (remove 0
+                                     (map 'list #'polynomial-min-power col)))))
+        (loop :for i :below n :do
+          (setf (aref nm i j)
+                (let ((min (car (last
+                                 (polynomial/ (aref col i)
                                               (cons min-pow 1))))))
-                    (if (= 0 (pwr min))
-                        (cff min)
-                        0))))))
+                  (if (= 0 (pwr min))
+                    (cff min)
+                    0))))))
     nm))
 
+(defun find-item (tree num)
+  "Tree is classic: car is value, cdr is list with all children"
+  (if (= num (car tree))
+    tree
+    (car
+     (remove-if #'null
+                (mapcar (lambda (subtree) (find-item subtree num))
+                        (cdr tree))))))
+
+(defun find-leaf (tree)
+  "Find arbitrary leaf in a tree"
+  (let ((children (cdr tree)))
+    (if (null children)
+      tree
+      (if (null (cdr (car children)))
+        tree
+        (find-leaf (car children))))))
+
+(defun build-tree-from-edges (weighted-edges)
+  "Supplimentary function to build tree fromm list of graph weighted edges"
+  (let* ((from (mapcar #'weighted-edge-from weighted-edges))
+         (to (mapcar #'weighted-edge-to weighted-edges))
+         (root (apply #'max (append from to)))
+         (edges (copy-list weighted-edges)))
+    (labels ((find-and-delete-all-children (node)
+               (let* ((tos (find-all node edges :key #'weighted-edge-to))
+                      (froms (find-all node edges :key #'weighted-edge-from))
+                      (children (append (mapcar #'weighted-edge-from tos)
+                                        (mapcar #'weighted-edge-to froms))))
+                 (setf edges (remove-all (append tos froms) edges))
+                 children))
+             (build-tree (node)
+               (let ((children (find-and-delete-all-children (car node))))
+                 (setf (cdr node) (mapcar #'list children))
+                 (mapcar #'build-tree (cdr node)))))
+      (let ((tree (list root)))
+        (build-tree tree)
+        tree))))
+
 (defun mst-count-pieper (m)
-  "Find number of possible MSTs in a weighted graph"
+  "Find number of minimal spanning trees in a weighted graph using Pieper algorithm"
   (gj-determinant
    (factor-out
     (trace-weighted-mst
      (weighted-adjacency-matrix m)
-     (build-tree-from-edges (find-mst m))))))
+     (build-tree-from-edges
+      (mst-find-kruskal m))))))
 
-(defun st-count (m)
-  "Find number of all spanning trees in a graph"
-  (gj-determinant (cofactor (laplace-matrix m) 0 0)))
+(defun st-count-kirchhoff (m)
+  "Find number of all spanning trees in a graph using Kirchhoff's theorem"
+  (gj-determinant (cofactor-matrix (laplace-matrix m) 0 0)))

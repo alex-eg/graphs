@@ -1,7 +1,13 @@
 (defpackage :cl-math.set
   (:use :cl)
   (:export
-   ))
+   :subset-find
+   :subset-remove
+   :subset-merge))
+
+(in-package :cl-math.set)
+
+;;; Sets use list as container
 
 (defun subset-find (set v)
   "Finds a subset containing and element v"

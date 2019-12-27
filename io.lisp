@@ -1,5 +1,9 @@
 (defpackage :cl-math.io
-  (:use :cl :cl-math.matrix :cl-math.polynomial)
+  (:use
+   :cl
+   :cl-math.polynomial)
+  (:import-from :cl-math.graph :set-edge)
+  (:import-from :cl-math.matrix :make-square-matrix)
   (:export
    ;; Misc
    :println
@@ -19,8 +23,7 @@
    :print-matrix
 
    ;; Polynomials
-   :print-polynomial
-   ))
+   :print-polynomial))
 
 (in-package :cl-math.io)
 
@@ -78,6 +81,7 @@ returned"
             (terpri)
             (princ #\Tab))
           (funcall print-function (row-major-aref m i))))
+  (terpri)
   m)
 
 ;;; Polynomials

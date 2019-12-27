@@ -1,8 +1,13 @@
 (defpackage :cl-math.polynomial
   (:use :cl)
   (:export
+   :make-monomial
+   :pwr
+   :cff
    :make-polynomial
-   ))
+   :polynomial+
+   :polynomial/
+   :polynomial-min-power))
 
 (in-package :cl-math.polynomial)
 
@@ -11,7 +16,6 @@
 ;;; Monomials in a polynomial are sorted by power
 
 (defun make-monomial (power coefficient)
-  "Make "
   (cons power coefficient))
 
 (defun pwr (a)
@@ -33,29 +37,40 @@
   (make-monomial (pwr a)
                  (* num (cff a))))
 
+(defun polynomial-zerop (a)
+  (and (= 1 (length a))
+       (= (cff (car a))
+          (pwr (car a))
+          0)))
+
 (defun polynomial+ (a b)
-  (cond
-    ((and (null a)
-          (null b))
-     (list (make-monomial 0 0)))
-    ((null b) a)
-    ((null a) b)
-    ((> (pwr (car a))
-        (pwr (car b)))
-     (cons (car a) (polynomial+ (cdr a) b)))
-    ((< (pwr (car a))
-        (pwr (car b)))
-     (cons (car b) (polynomial+ a (cdr b))))
-    ((= (pwr (car a))
-        (pwr (car b)))
-     (let ((new-monomial
-             (make-monomial (pwr (car a))
-                            (+ (cff (car a))
-                               (cff (car b))))))
-       (if (= 0 (cff new-monomial))
-         (polynomial+ (cdr a) (cdr b))
-         (cons new-monomial
-               (polynomial+ (cdr a) (cdr b))))))))
+  (labels
+      ((%+ (a b)
+         (cond
+           ((polynomial-zerop a) b)
+           ((polynomial-zerop b) a)
+           ((null b) a)
+           ((null a) b)
+           ((> (pwr (car a))
+               (pwr (car b)))
+            (cons (car a) (%+ (cdr a) b)))
+           ((< (pwr (car a))
+               (pwr (car b)))
+            (cons (car b) (%+ a (cdr b))))
+           ((= (pwr (car a))
+               (pwr (car b)))
+            (let ((new-monomial
+                    (make-monomial (pwr (car a))
+                                   (+ (cff (car a))
+                                      (cff (car b))))))
+              (if (= 0 (cff new-monomial))
+                (%+ (cdr a) (cdr b))
+                (cons new-monomial
+                      (%+ (cdr a) (cdr b)))))))))
+    (let ((sum (%+ a b)))
+      (if (null sum)
+        (make-polynomial (make-monomial 0 0))
+        sum))))
 
 (defun polynomial/ (polynomial monomial)
   (let ((polynomial (copy-tree polynomial))

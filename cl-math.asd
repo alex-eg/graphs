@@ -5,8 +5,9 @@
 
 (asdf:defsystem cl-math
   :components
-  ((:file "io")
-   (:file "set")
-   (:file "matrix")
+  ((:file "set")
    (:file "polynomial")
-   (:file "graph")))
+   (:file "list")
+   (:file "matrix")
+   (:file "graph")
+   (:file "io")))
