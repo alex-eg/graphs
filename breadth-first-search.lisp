@@ -57,9 +57,9 @@ Example: (string-to-list \"1 2 3 wut quux\") -> '(1 2 3 wut quux)"
 
 (defun enqueue (obj q)
   (if (null (car q))
-      (setf (cdr q) (setf (car q) (list obj)))
-      (setf (cdr (cdr q)) (list obj)
-            (cdr q) (cdr (cdr q))))
+    (setf (cdr q) (setf (car q) (list obj)))
+    (setf (cdr (cdr q)) (list obj)
+          (cdr q) (cdr (cdr q))))
   (car q))
 
 (defun queue-nullp (q)
@@ -74,21 +74,24 @@ Example: (string-to-list \"1 2 3 wut quux\") -> '(1 2 3 wut quux)"
   (let ((nm (make-array (array-dimension m 0) :initial-element -1))
         (q (make-queue)))
     (enqueue (cons s 0) q)
-    (loop :while (not (queue-nullp q))
-       :do (let* ((node-dist (dequeue q))
-                  (current-node (car node-dist))
-                  (current-distance (cdr node-dist))
-                  (adjacent (row m current-node)))
-             (loop :for i :below (array-dimension m 0)
-                :do (let ((edge (aref adjacent i)))
-                      (if edge
-                          (if (and (= -1 (aref nm i))
-                                   (not (= i s)))
-                              (progn
-                                (setf (aref nm i) (+ 6 current-distance))
-                                (enqueue (cons i (+ 6 current-distance)) q))))))))
-    (loop :for i :below (array-dimension nm 0)
-       :when (not (= i s)) :collect (aref nm i))))
+    (loop
+      :while (not (queue-nullp q))
+      :do (let* ((node-dist (dequeue q))
+                 (current-node (car node-dist))
+                 (current-distance (cdr node-dist))
+                 (adjacent (row m current-node)))
+            (loop
+              :for i :below (array-dimension m 0)
+              :do (let ((edge (aref adjacent i)))
+                    (if edge
+                      (if (and (= -1 (aref nm i))
+                               (not (= i s)))
+                        (progn
+                          (setf (aref nm i) (+ 6 current-distance))
+                          (enqueue (cons i (+ 6 current-distance)) q))))))))
+    (loop
+      :for i :below (array-dimension nm 0)
+      :when (not (= i s)) :collect (aref nm i))))
 
 
 ;;; Test
@@ -99,5 +102,6 @@ Example: (string-to-list \"1 2 3 wut quux\") -> '(1 2 3 wut quux)"
     (format t "~{~A~^ ~}~%" (breadth-search m start))))
 
 (let ((num-cases (read)))
-  (loop :repeat num-cases
-     :do (process-case)))
+  (loop
+    :repeat num-cases
+    :do (process-case)))
